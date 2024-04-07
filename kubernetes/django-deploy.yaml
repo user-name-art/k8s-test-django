@@ -45,5 +45,4 @@ spec:
     app: django-app
   ports:
     - port: 80
-      targetPort: 
-      nodePort: 30007
+      targetPort: 80
