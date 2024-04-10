@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: django
+  labels:
+    app: django-app
 spec:
   selector:
     matchLabels:
@@ -14,7 +16,7 @@ spec:
       containers:
       - image: usernameart/django_app
         imagePullPolicy: IfNotPresent
-        name: django
+        name: django-deploy
         ports:
         - containerPort: 80
         env:
