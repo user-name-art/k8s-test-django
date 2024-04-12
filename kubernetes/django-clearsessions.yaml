@@ -18,5 +18,5 @@ spec:
             args: [ "python", "manage.py", "clearsessions" ]
             imagePullPolicy: Never
             envFrom:
-            - configMapRef:
-                name: django-configmap
+            - secretRef:
+                name: django-secrets
