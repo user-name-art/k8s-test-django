@@ -10,26 +10,13 @@ spec:
       ttlSecondsAfterFinished: 50
       template:
         spec:
+          restartPolicy: OnFailure
           containers:
           - name: django-clearsession-job
             image: usernameart/django_app
             command: [ "/bin/sh", "-c" ]
             args: [ "python", "manage.py", "clearsessions" ]
             imagePullPolicy: Never
-            env:
-            - name: DEBUG
-              valueFrom:
-                secretKeyRef:
-                  name: django-secrets
-                  key: DEBUG
-            - name: SECRET_KEY
-              valueFrom:
-                secretKeyRef:
-                  name: django-secrets
-                  key: SECRET_KEY
-            - name: ALLOWED_HOSTS
-              valueFrom:
-                secretKeyRef:
-                  name: django-secrets
-                  key: ALLOWED_HOSTS
-          restartPolicy: OnFailure
+            envFrom:
+            - configMapRef:
+                name: django-configmap

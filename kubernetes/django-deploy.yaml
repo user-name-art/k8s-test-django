@@ -19,22 +19,9 @@ spec:
         name: django-deploy
         ports:
         - containerPort: 80
-        env:
-        - name: DEBUG
-          valueFrom:
-            secretKeyRef:
-              name: django-secrets
-              key: DEBUG
-        - name: SECRET_KEY
-          valueFrom:
-            secretKeyRef:
-              name: django-secrets
-              key: SECRET_KEY
-        - name: ALLOWED_HOSTS
-          valueFrom:
-            secretKeyRef:
-              name: django-secrets
-              key: ALLOWED_HOSTS
+        envFrom:
+        - configMapRef:
+            name: django-configmap
 
 ---
 apiVersion: v1
