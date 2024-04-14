@@ -14,7 +14,7 @@ spec:
         app: django-app
     spec:
       containers:
-      - image: usernameart/django_app
+      - image: usernameart/django_app:latest
         imagePullPolicy: IfNotPresent
         name: django-deploy
         ports:

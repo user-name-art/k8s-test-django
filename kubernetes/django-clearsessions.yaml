@@ -13,7 +13,7 @@ spec:
           restartPolicy: OnFailure
           containers:
           - name: django-clearsession-job
-            image: usernameart/django_app
+            image: usernameart/django_app:latest
             command: [ "/bin/sh", "-c" ]
             args: [ "python", "manage.py", "clearsessions" ]
             imagePullPolicy: Never
