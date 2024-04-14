@@ -12,7 +12,7 @@
 
 Вместе со свежей версией Docker к вам на компьютер автоматически будет установлен Docker Compose. Дальнейшие инструкции будут его активно использовать.
 
-## Как запустить сайт для локальной разработки
+## Как запустить сайт для локальной разработки с помощью Docker Compose
 
 Запустите базу данных и сайт:
 
@@ -75,3 +75,72 @@ $ docker compose build web
 `ALLOWED_HOSTS` -- настройка Django со списком разрешённых адресов. Если запрос прилетит на другой адрес, то сайт ответит ошибкой 400. Можно перечислить несколько адресов через запятую, например `127.0.0.1,192.168.0.1,site.test`. [Документация Django](https://docs.djangoproject.com/en/3.2/ref/settings/#allowed-hosts).
 
 `DATABASE_URL` -- адрес для подключения к базе данных PostgreSQL. Другие СУБД сайт не поддерживает. [Формат записи](https://github.com/jacobian/dj-database-url#url-schema).
+
+## Запуск в Minikube.
+
+Чтобы развернуть сайт в Minikube, нужно установить [Virtualbox](https://www.virtualbox.org/wiki/Downloads), [Minikube](https://minikube.sigs.k8s.io/docs/start/) и [Kubectl](https://kubernetes.io/docs/tasks/tools/). Для запуска базы данных  в кластере понадобится [Helm](https://helm.sh/). 
+
+Перейдите в папку kubernetes и создайте кластер:
+```
+minikube start --vm-driver=virtualbox
+```
+
+Если при использовании Minikube в связке с Virtualbox возникают проблемы, можно использовать другой драйвер - например, [kvm2](https://minikube.sigs.k8s.io/docs/drivers/kvm2/).
+
+В папке kubernetes создайте файл django-secrets.yaml для хранения описанных выше переменных окружения следующего вида:
+```
+apiVersion: v1
+kind: Secret
+metadata:
+  name: django-secrets
+type: Opaque
+data:
+  ALLOWED_HOSTS: Kg==
+  DEBUG: RmFsc2U=
+  SECRET_KEY: cmVwbGFjZQ==
+  DATABASE_URL: cG9zdGdyZXM6Ly90ZXN0X2s4czpPd090QmVwOUZydXRAcHNxbC1kYi1wb3N0Z3Jlc3FsOjU0MzIvdGVzdF9rOHM=
+```
+Значения переменных окружения указаны в кодировке base64.
+
+Далее загрузите переменные окружения:
+```
+kubectl apply -f django-secrets.yaml
+```
+Создайте Docker-образ:
+```
+docker build -t <dockerhub_name>/django-app:latest .
+```
+И загрузите его в хранилище:
+```
+docker push <dockerhub_name>/django_app:latest
+```
+Подготовьте базу данных PostgreSQL:
+```
+helm install my-release oci://registry-1.docker.io/bitnamicharts/postgresql
+```
+Далее запускаем базу данных:
+```
+kubectl run psql-db-postgresql-client --rm --tty -i --restart='Never' --namespace default --image docker.io/bitnami/postgresql:16.2.0-debian-12-r15 --env="PGPASSWORD=$POSTGRES_PASSWORD" --command -- psql --host psql-db-postgresql -U postgres -d postgres -p 5432
+``` 
+Через интерфейс psql создаем таблицу, пользователя и задаем ему соответствующие разрешения.
+
+Запустите проект Django:
+```
+kubectl apply -f django-deploy.yaml
+```
+Примените миграции:
+```
+kubectl apply -f django-migrate.yaml
+```
+Добавьте [ingress](https://kubernetes.io/docs/tasks/access-application-cluster/ingress-minikube/):
+```
+kubectl apply -f ingress.yaml
+```
+Добавьте адрес star-burger.test в файл hosts для удоства тестирования:
+```
+echo "$(minikube ip) star-burger.test" | sudo tee -a /etc/hosts
+```
+Подключите автоматический запуск очистки сессий Django:
+```
+kubectl apply -f django-clearsessions.yaml
+```
