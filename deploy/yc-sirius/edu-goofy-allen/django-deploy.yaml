@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: django
+  labels:
+    app: django-app
+spec:
+  selector:
+    matchLabels:
+      app: django-app
+  template:
+    metadata:
+      labels:
+        app: django-app
+    spec:
+      containers:
+      - image: usernameart/django_app:f70f1af
+        name: django-deploy
+        volumeMounts:
+          - name: postgresql-cert-volume
+            mountPath: '/root/.postgresql'
+        ports:
+        - containerPort: 80
+        envFrom:
+        - secretRef:
+            name: django-secrets
+      volumes:
+        - name: postgresql-cert-volume
+          secret:
+            secretName: postgresql-ssl
+            defaultMode: 0600
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: django
+spec:
+  type: LoadBalancer
+  selector:
+    app: django-app
+  ports:
+    - port: 80
+      targetPort: 80
+      nodePort: 30351
+      protocol: TCP
