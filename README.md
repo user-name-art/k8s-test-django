@@ -144,3 +144,43 @@ echo "$(minikube ip) star-burger.test" | sudo tee -a /etc/hosts
 ```
 kubectl apply -f django-clearsessions.yaml
 ```
+## Запуск в Yandex Cloud.
+
+Установите интерфейс командной строки Yandex Cloud ([CLI](https://yandex.cloud/en/docs/cli/quickstart)) и и подключитесь к кластеру. Для работы с кластером удобно использовать графический интерфейс [Lens](https://store.k8slens.dev/products/lens-desktop-personal).
+
+Соберите образ из директории с Dockerfile:
+```
+docker build -t <image-name> .
+```
+В качестве тега образа для dev-окружения удобно использовать хэш коммита. Добавляем его при отправке в Docker Hub:
+```
+commit=$(git rev-parse --short HEAD) 
+docker push <your-docker-id>/<image-name>:$commit
+```
+Манифесты для деплоя в Yandex Cloud находятся в директории deploy/yc-sirius/edu-goofy-allen. Создайте в ней файл django-secrets.yaml для хранения переменных окружения по аналогии с Minikube.
+
+Для подключения к базе данных PostgreSQL, которая развернута в Yandex Cloud, нужен [SSL-сертификат](https://yandex.cloud/ru/docs/managed-postgresql/operations/connect#get-ssl-cert):
+```
+mkdir -p ~/.postgresql && \
+wget "https://storage.yandexcloud.net/cloud-certs/CA.pem" \
+     --output-document ~/.postgresql/root.crt && \
+chmod 0600 ~/.postgresql/root.crt
+```
+Создайте Secret:
+```
+kubectl create secret generic postgresql-ssl -n <namespace>  --from-file=/path_to_file/root.crt
+```
+### Запуск Django-приложения
+
+В файле django-deploy.yaml измените данные образа на свои, а также укажите nodePort согласно предоставленным настройкам ALB-роутера. После этого выполните:
+
+```
+kubectl -n <namespace> apply -f django-service.yaml
+```
+Выполните миграции:
+```
+kubectl -n <namespace> apply -f django-migrate.yaml
+```
+Ссылка на сайт: [edu-goofy-allen.sirius-k8s.dvmn.org](https://edu-goofy-allen.sirius-k8s.dvmn.org/)
+
+Серверная инфраструктура описана [здесь](https://sirius-env-registry.website.yandexcloud.net/edu-goofy-allen.html).
